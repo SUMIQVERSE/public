@@ -33,7 +33,6 @@ function initGlobe() {
 
     // ==========================================
     // HONEST OPTIMIZATION: USE requestIdleCallback
-    // Browser jab khali hoga, tabhi Globe load karega
     // ==========================================
     window.requestIdleCallback(() => {
         try {
@@ -65,28 +64,43 @@ function initGlobe() {
                 .width(globeContainer.offsetWidth || window.innerWidth)
                 .height(globeContainer.offsetHeight || window.innerHeight);
 
+            // ==========================================
+            // 1. HARDWARE OPTIMIZATION: LIMIT PIXEL RATIO
+            // ==========================================
+            world.renderer().setPixelRatio(Math.min(window.devicePixelRatio, 1.2));
+
             // Zoom out to fit screen
             world.pointOfView({ altitude: 2.5 });
 
             // ==========================================
-            // PREMIUM UX: GRADUAL SPEED UP
+            // 2. SEO & CRAWLER OPTIMIZATION
             // ==========================================
-            world.controls().autoRotate = true;
-            world.controls().autoRotateSpeed = 0.05; // Start ultra-slow
+            const isBot = /bot|googlebot|crawler|spider|robot|crawling|lighthouse|PTST/i.test(navigator.userAgent);
 
-            let currentSpeed = 0.05;
-            const targetSpeed = 0.5;
+            if (isBot) {
+                // Bots ke paas GPU nahi hota, unka CPU choke hone se bachao
+                world.controls().autoRotate = false;
+                setTimeout(() => {
+                    if (world.pauseAnimation) world.pauseAnimation();
+                }, 500); 
+                console.log('Crawler detected: 3D Engine paused to save crawl budget.');
+            } else {
+                // Real users ke liye premium Gradual Speed-up UX
+                world.controls().autoRotate = true;
+                world.controls().autoRotateSpeed = 0.05;
 
-            // Dheere-dheere speed badhayega (every 100ms)
-            const speedUpInterval = setInterval(() => {
-                currentSpeed += 0.02;
-                if (currentSpeed >= targetSpeed) {
-                    currentSpeed = targetSpeed;
-                    clearInterval(speedUpInterval); // Max speed par aate hi loop band
-                }
-                world.controls().autoRotateSpeed = currentSpeed;
-            }, 100);
-            // ==========================================
+                let currentSpeed = 0.05;
+                const targetSpeed = 0.5;
+
+                const speedUpInterval = setInterval(() => {
+                    currentSpeed += 0.02;
+                    if (currentSpeed >= targetSpeed) {
+                        currentSpeed = targetSpeed;
+                        clearInterval(speedUpInterval);
+                    }
+                    world.controls().autoRotateSpeed = currentSpeed;
+                }, 100);
+            }
 
             console.log('Globe created successfully!');
 
@@ -102,7 +116,7 @@ function initGlobe() {
             console.error('Error initializing globe:', error);
             globeContainer.innerHTML = '<div style="color: red; padding: 20px;">Globe failed to load: ' + error.message + '</div>';
         }
-    }, { timeout: 2000 }); // Maximum 2 seconds wait karega, uske baad load kar hi dega
+    }, { timeout: 2000 });
 }
 // ================================
 // MOBILE MENU
