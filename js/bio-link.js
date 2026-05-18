@@ -1500,7 +1500,8 @@ function generateBioPreviewHTML(bioLink) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${sanitizeHTML(bioLink.name)}</title>
-    <link rel="stylesheet" href="css/all.min.css">
+    <link rel="stylesheet" href="css/all.min.css" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="css/all.min.css"></noscript>
     <link href="https://fonts.googleapis.com/css2?family=Encode+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/bio-preview.css">
     <style>
