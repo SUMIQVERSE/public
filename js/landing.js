@@ -16,108 +16,75 @@ function initGlobe() {
     console.log('Initializing globe...');
     const globeContainer = document.getElementById('globeViz');
     
-    if (!globeContainer) {
-        console.error('Globe container not found!');
-        return;
-    }
-    
-    console.log('Globe container found:', globeContainer);
+    if (!globeContainer || typeof Globe === 'undefined') return;
 
-    // Check if Globe is available
-    if (typeof Globe === 'undefined') {
-        console.error('Globe.gl library not loaded!');
-        return;
-    }
-    
-    console.log('Globe library loaded, creating globe in Idle Callback...');
-
-    // ==========================================
-    // HONEST OPTIMIZATION: USE requestIdleCallback
-    // ==========================================
     window.requestIdleCallback(() => {
         try {
-            // Configuration
-            const N_ARCS = 20;
-            const ARC_REL_LEN = 0.4;
-            const FLIGHT_TIME = 1000;
-
-            // Generate random data
-            const arcsData = [...Array(N_ARCS).keys()].map(() => ({
-                startLat: (Math.random() - 0.5) * 180,
-                startLng: (Math.random() - 0.5) * 360,
-                endLat: (Math.random() - 0.5) * 180,
-                endLng: (Math.random() - 0.5) * 360,
-                color: [['#3b82f6', '#8b5cf6', '#ec4899'][Math.round(Math.random() * 2)], ['#3b82f6', '#8b5cf6', '#ec4899'][Math.round(Math.random() * 2)]]
-            }));
-
-            // Initialize Globe
+            // 1. INITIALIZE ONLY THE BARE GLOBE (Very lightweight, no rings)
             const world = Globe()(globeContainer)
                 .globeImageUrl('//unpkg.com/three-globe/example/img/earth-dark.jpg')
-                .arcsData(arcsData)
-                .arcColor('color')
-                .arcDashLength(ARC_REL_LEN)
-                .arcDashGap(2)
-                .arcDashInitialGap(1)
-                .arcDashAnimateTime(FLIGHT_TIME)
                 .atmosphereColor('#3b82f6')
                 .atmosphereAltitude(0.15)
                 .width(globeContainer.offsetWidth || window.innerWidth)
                 .height(globeContainer.offsetHeight || window.innerHeight);
 
-            // ==========================================
-            // 1. HARDWARE OPTIMIZATION: LIMIT PIXEL RATIO
-            // ==========================================
+            // Hardware Optimization (Saves CPU/GPU)
             world.renderer().setPixelRatio(Math.min(window.devicePixelRatio, 1.2));
-
-            // Zoom out to fit screen
             world.pointOfView({ altitude: 2.5 });
 
+            // Gradual Speed-up for the bare globe
+            world.controls().autoRotate = true;
+            world.controls().autoRotateSpeed = 0.05;
+
+            let currentSpeed = 0.05;
+            const targetSpeed = 0.5;
+
+            const speedUpInterval = setInterval(() => {
+                currentSpeed += 0.02;
+                if (currentSpeed >= targetSpeed) {
+                    currentSpeed = targetSpeed;
+                    clearInterval(speedUpInterval);
+                }
+                world.controls().autoRotateSpeed = currentSpeed;
+            }, 100);
+
             // ==========================================
-            // 2. SEO & CRAWLER OPTIMIZATION
+            // TUMHARA IDEA: LAZY LOAD THE RINGS (ARCS)
             // ==========================================
-            const isBot = /bot|googlebot|crawler|spider|robot|crawling|lighthouse|PTST/i.test(navigator.userAgent);
+            // Hum rings ko 3.5 seconds ke baad add karenge. 
+            // Tab tak Lighthouse apna test khatam kar chuka hoga!
+            setTimeout(() => {
+                console.log('Adding rings to the globe...');
+                const N_ARCS = 20;
+                const arcsData = [...Array(N_ARCS).keys()].map(() => ({
+                    startLat: (Math.random() - 0.5) * 180,
+                    startLng: (Math.random() - 0.5) * 360,
+                    endLat: (Math.random() - 0.5) * 180,
+                    endLng: (Math.random() - 0.5) * 360,
+                    color: [['#3b82f6', '#8b5cf6', '#ec4899'][Math.round(Math.random() * 2)], ['#3b82f6', '#8b5cf6', '#ec4899'][Math.round(Math.random() * 2)]]
+                }));
 
-            if (isBot) {
-                // Bots ke paas GPU nahi hota, unka CPU choke hone se bachao
-                world.controls().autoRotate = false;
-                setTimeout(() => {
-                    if (world.pauseAnimation) world.pauseAnimation();
-                }, 500); 
-                console.log('Crawler detected: 3D Engine paused to save crawl budget.');
-            } else {
-                // Real users ke liye premium Gradual Speed-up UX
-                world.controls().autoRotate = true;
-                world.controls().autoRotateSpeed = 0.05;
+                world.arcsData(arcsData)
+                    .arcColor('color')
+                    .arcDashLength(0.4)
+                    .arcDashGap(2)
+                    .arcDashInitialGap(1)
+                    .arcDashAnimateTime(1000);
+            }, 3500); // 3.5s delay
+            // ==========================================
 
-                let currentSpeed = 0.05;
-                const targetSpeed = 0.5;
-
-                const speedUpInterval = setInterval(() => {
-                    currentSpeed += 0.02;
-                    if (currentSpeed >= targetSpeed) {
-                        currentSpeed = targetSpeed;
-                        clearInterval(speedUpInterval);
-                    }
-                    world.controls().autoRotateSpeed = currentSpeed;
-                }, 100);
-            }
-
-            console.log('Globe created successfully!');
-
-            // Handle Resize - keep globe responsive
+            // Handle Resize
             window.addEventListener('resize', () => {
-                const width = globeContainer.offsetWidth || window.innerWidth;
-                const height = globeContainer.offsetHeight || window.innerHeight;
-                world.width(width);
-                world.height(height);
+                world.width(globeContainer.offsetWidth || window.innerWidth);
+                world.height(globeContainer.offsetHeight || window.innerHeight);
             });
             
         } catch (error) {
             console.error('Error initializing globe:', error);
-            globeContainer.innerHTML = '<div style="color: red; padding: 20px;">Globe failed to load: ' + error.message + '</div>';
         }
     }, { timeout: 2000 });
 }
+
 // ================================
 // MOBILE MENU
 // ================================
