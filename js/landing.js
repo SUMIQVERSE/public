@@ -60,29 +60,39 @@ function initGlobe() {
             .width(globeContainer.offsetWidth || window.innerWidth)
             .height(globeContainer.offsetHeight || window.innerHeight);
 
-        // ==========================================
-        // LIGHTHOUSE OPTIMIZATION: RENDER & PAUSE
+       // ==========================================
+        // LIGHTHOUSE OPTIMIZATION: COMPLETE ENGINE FREEZE
         // ==========================================
         
-        // 1. Zoom out to fit screen (Pehle yeh kar lo taaki theek se dikhe)
+        // 1. Zoom out to fit screen
         world.pointOfView({ altitude: 2.5 });
 
-        // 2. Keep it paused initially so Lighthouse bot doesn't crash CPU
+        // 2. Rotation band karo
         world.controls().autoRotate = false;
         
-        // 3. Function to start animation
+        // 3. Engine ko thoda time do (500ms) taaki globe screen par dikh jaye, fir poori tarah FREEZE kar do
+        setTimeout(() => {
+            world.pauseAnimation(); // THIS is the magic line that stops CPU usage
+            console.log('Globe engine paused for Lighthouse');
+        }, 500);
+        
+        // 4. Function to wake up the engine
         const startGlobeAnimation = () => {
-            if (world && world.controls()) {
-                world.controls().autoRotate = true;
-                world.controls().autoRotateSpeed = 0.5;
+            if (world) {
+                world.resumeAnimation(); // WAKE UP THE ENGINE
+                if (world.controls()) {
+                    world.controls().autoRotate = true;
+                    world.controls().autoRotateSpeed = 0.5;
+                }
+                console.log('Globe engine resumed!');
             }
-            // Cleanup listeners so this only runs once
+            // Cleanup listeners
             window.removeEventListener('scroll', startGlobeAnimation);
             window.removeEventListener('mousemove', startGlobeAnimation);
             window.removeEventListener('touchstart', startGlobeAnimation);
         };
 
-        // 4. Listen for first human interaction (Mouse, Touch, or Scroll)
+        // 5. Listen for first human interaction
         window.addEventListener('scroll', startGlobeAnimation, { once: true });
         window.addEventListener('mousemove', startGlobeAnimation, { once: true });
         window.addEventListener('touchstart', startGlobeAnimation, { once: true });
