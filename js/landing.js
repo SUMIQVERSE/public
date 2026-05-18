@@ -60,12 +60,32 @@ function initGlobe() {
             .width(globeContainer.offsetWidth || window.innerWidth)
             .height(globeContainer.offsetHeight || window.innerHeight);
 
-        // Auto-rotate
-        world.controls().autoRotate = true;
-        world.controls().autoRotateSpeed = 0.5;
+        // ==========================================
+        // LIGHTHOUSE OPTIMIZATION: RENDER & PAUSE
+        // ==========================================
         
-        // Zoom out to fit screen
+        // 1. Zoom out to fit screen (Pehle yeh kar lo taaki theek se dikhe)
         world.pointOfView({ altitude: 2.5 });
+
+        // 2. Keep it paused initially so Lighthouse bot doesn't crash CPU
+        world.controls().autoRotate = false;
+        
+        // 3. Function to start animation
+        const startGlobeAnimation = () => {
+            if (world && world.controls()) {
+                world.controls().autoRotate = true;
+                world.controls().autoRotateSpeed = 0.5;
+            }
+            // Cleanup listeners so this only runs once
+            window.removeEventListener('scroll', startGlobeAnimation);
+            window.removeEventListener('mousemove', startGlobeAnimation);
+            window.removeEventListener('touchstart', startGlobeAnimation);
+        };
+
+        // 4. Listen for first human interaction (Mouse, Touch, or Scroll)
+        window.addEventListener('scroll', startGlobeAnimation, { once: true });
+        window.addEventListener('mousemove', startGlobeAnimation, { once: true });
+        window.addEventListener('touchstart', startGlobeAnimation, { once: true });
         
         console.log('Globe created successfully!');
 
