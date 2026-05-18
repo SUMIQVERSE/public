@@ -29,90 +29,81 @@ function initGlobe() {
         return;
     }
     
-    console.log('Globe library loaded, creating globe...');
+    console.log('Globe library loaded, creating globe in Idle Callback...');
 
-    try {
-        // Configuration
-        const N_ARCS = 20;
-        const ARC_REL_LEN = 0.4;
-        const FLIGHT_TIME = 1000;
+    // ==========================================
+    // HONEST OPTIMIZATION: USE requestIdleCallback
+    // Browser jab khali hoga, tabhi Globe load karega
+    // ==========================================
+    window.requestIdleCallback(() => {
+        try {
+            // Configuration
+            const N_ARCS = 20;
+            const ARC_REL_LEN = 0.4;
+            const FLIGHT_TIME = 1000;
 
-        // Generate random data
-        const arcsData = [...Array(N_ARCS).keys()].map(() => ({
-            startLat: (Math.random() - 0.5) * 180,
-            startLng: (Math.random() - 0.5) * 360,
-            endLat: (Math.random() - 0.5) * 180,
-            endLng: (Math.random() - 0.5) * 360,
-            color: [['#3b82f6', '#8b5cf6', '#ec4899'][Math.round(Math.random() * 2)], ['#3b82f6', '#8b5cf6', '#ec4899'][Math.round(Math.random() * 2)]]
-        }));
+            // Generate random data
+            const arcsData = [...Array(N_ARCS).keys()].map(() => ({
+                startLat: (Math.random() - 0.5) * 180,
+                startLng: (Math.random() - 0.5) * 360,
+                endLat: (Math.random() - 0.5) * 180,
+                endLng: (Math.random() - 0.5) * 360,
+                color: [['#3b82f6', '#8b5cf6', '#ec4899'][Math.round(Math.random() * 2)], ['#3b82f6', '#8b5cf6', '#ec4899'][Math.round(Math.random() * 2)]]
+            }));
 
-        // Initialize Globe
-        const world = Globe()(globeContainer)
-            .globeImageUrl('//unpkg.com/three-globe/example/img/earth-dark.jpg')
-            .arcsData(arcsData)
-            .arcColor('color')
-            .arcDashLength(ARC_REL_LEN)
-            .arcDashGap(2)
-            .arcDashInitialGap(1)
-            .arcDashAnimateTime(FLIGHT_TIME)
-            .atmosphereColor('#3b82f6')
-            .atmosphereAltitude(0.15)
-            .width(globeContainer.offsetWidth || window.innerWidth)
-            .height(globeContainer.offsetHeight || window.innerHeight);
+            // Initialize Globe
+            const world = Globe()(globeContainer)
+                .globeImageUrl('//unpkg.com/three-globe/example/img/earth-dark.jpg')
+                .arcsData(arcsData)
+                .arcColor('color')
+                .arcDashLength(ARC_REL_LEN)
+                .arcDashGap(2)
+                .arcDashInitialGap(1)
+                .arcDashAnimateTime(FLIGHT_TIME)
+                .atmosphereColor('#3b82f6')
+                .atmosphereAltitude(0.15)
+                .width(globeContainer.offsetWidth || window.innerWidth)
+                .height(globeContainer.offsetHeight || window.innerHeight);
 
-       // ==========================================
-        // LIGHTHOUSE OPTIMIZATION: COMPLETE ENGINE FREEZE
-        // ==========================================
-        
-        // 1. Zoom out to fit screen
-        world.pointOfView({ altitude: 2.5 });
+            // Zoom out to fit screen
+            world.pointOfView({ altitude: 2.5 });
 
-        // 2. Rotation band karo
-        world.controls().autoRotate = false;
-        
-        // 3. Engine ko thoda time do (500ms) taaki globe screen par dikh jaye, fir poori tarah FREEZE kar do
-        setTimeout(() => {
-            world.pauseAnimation(); // THIS is the magic line that stops CPU usage
-            console.log('Globe engine paused for Lighthouse');
-        }, 500);
-        
-        // 4. Function to wake up the engine
-        const startGlobeAnimation = () => {
-            if (world) {
-                world.resumeAnimation(); // WAKE UP THE ENGINE
-                if (world.controls()) {
-                    world.controls().autoRotate = true;
-                    world.controls().autoRotateSpeed = 0.5;
+            // ==========================================
+            // PREMIUM UX: GRADUAL SPEED UP
+            // ==========================================
+            world.controls().autoRotate = true;
+            world.controls().autoRotateSpeed = 0.05; // Start ultra-slow
+
+            let currentSpeed = 0.05;
+            const targetSpeed = 0.5;
+
+            // Dheere-dheere speed badhayega (every 100ms)
+            const speedUpInterval = setInterval(() => {
+                currentSpeed += 0.02;
+                if (currentSpeed >= targetSpeed) {
+                    currentSpeed = targetSpeed;
+                    clearInterval(speedUpInterval); // Max speed par aate hi loop band
                 }
-                console.log('Globe engine resumed!');
-            }
-            // Cleanup listeners
-            window.removeEventListener('scroll', startGlobeAnimation);
-            window.removeEventListener('mousemove', startGlobeAnimation);
-            window.removeEventListener('touchstart', startGlobeAnimation);
-        };
+                world.controls().autoRotateSpeed = currentSpeed;
+            }, 100);
+            // ==========================================
 
-        // 5. Listen for first human interaction
-        window.addEventListener('scroll', startGlobeAnimation, { once: true });
-        window.addEventListener('mousemove', startGlobeAnimation, { once: true });
-        window.addEventListener('touchstart', startGlobeAnimation, { once: true });
-        
-        console.log('Globe created successfully!');
+            console.log('Globe created successfully!');
 
-        // Handle Resize - keep globe responsive
-        window.addEventListener('resize', () => {
-            const width = globeContainer.offsetWidth || window.innerWidth;
-            const height = globeContainer.offsetHeight || window.innerHeight;
-            world.width(width);
-            world.height(height);
-        });
-        
-    } catch (error) {
-        console.error('Error initializing globe:', error);
-        globeContainer.innerHTML = '<div style="color: red; padding: 20px;">Globe failed to load: ' + error.message + '</div>';
-    }
+            // Handle Resize - keep globe responsive
+            window.addEventListener('resize', () => {
+                const width = globeContainer.offsetWidth || window.innerWidth;
+                const height = globeContainer.offsetHeight || window.innerHeight;
+                world.width(width);
+                world.height(height);
+            });
+            
+        } catch (error) {
+            console.error('Error initializing globe:', error);
+            globeContainer.innerHTML = '<div style="color: red; padding: 20px;">Globe failed to load: ' + error.message + '</div>';
+        }
+    }, { timeout: 2000 }); // Maximum 2 seconds wait karega, uske baad load kar hi dega
 }
-
 // ================================
 // MOBILE MENU
 // ================================
