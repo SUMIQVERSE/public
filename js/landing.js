@@ -4,7 +4,7 @@
 
 document.addEventListener('DOMContentLoaded', () => {
     console.log('DOM loaded, initializing...');
-    initGlobe();
+    initWorkerGlobe();
     initMobileMenu();
     initScrollAnimations();
 });
