@@ -9,90 +9,38 @@ document.addEventListener('DOMContentLoaded', () => {
     initScrollAnimations();
 });
 
-// ================================
-// 3D GLOBE VISUALIZATION
-// ================================
-// ================================
-// 3D GLOBE VISUALIZATION (INFINITE PREMIUM UX)
-// ================================
-function initGlobe() {
-    console.log('Initializing globe...');
-    const globeContainer = document.getElementById('globeViz');
-    
-    if (!globeContainer || typeof Globe === 'undefined') return;
+function initWorkerGlobe() {
+    const canvas = document.getElementById('globeVis');
+    if (!canvas) return;
 
-    // requestIdleCallback taaki HTML/CSS turant load ho jaye
-    window.requestIdleCallback(() => {
-        try {
-            // 1. GLOBE INITIALIZATION (Hamesha chalta rahega)
-            const world = Globe()(globeContainer)
-                .globeImageUrl('assets/images/earth-dark.jpg')
-                .atmosphereColor('#3b82f6')
-                .atmosphereAltitude(0.15)
-                .width(globeContainer.offsetWidth || window.innerWidth)
-                .height(globeContainer.offsetHeight || window.innerHeight);
+    if (!('transferControlToOffscreen' in canvas)) {
+        console.error('OffscreenCanvas is not supported in this browser.');
+        return; 
+    }
 
-            // Hardware Optimization (Saves battery without stopping animation)
-            world.renderer().setPixelRatio(Math.min(window.devicePixelRatio, 1.2));
-            world.pointOfView({ altitude: 2.5 });
+    // Detach canvas from Main Thread
+    const offscreenCanvas = canvas.transferControlToOffscreen();
 
-            // Globe hamesha 0.5 ki mast speed par ghumega
-            world.controls().autoRotate = true;
-            world.controls().autoRotateSpeed = 0.5;
+    // Start Worker
+    const worker = new Worker('js/globe-worker.js');
 
-            // ==========================================
-            // LAZY LOAD RINGS (For Initial Load Speed)
-            // ==========================================
-            // Globe aane ke 3.5 second baad rings smoothly appear hongi
-            // aur uske baad HAMESHA chalti rahengi.
-            setTimeout(() => {
-                console.log('Adding glowing arcs...');
-                const N_ARCS = 20;
-                const arcsData = [...Array(N_ARCS).keys()].map(() => ({
-                    startLat: (Math.random() - 0.5) * 180,
-                    startLng: (Math.random() - 0.5) * 360,
-                    endLat: (Math.random() - 0.5) * 180,
-                    endLng: (Math.random() - 0.5) * 360,
-                    color: [['#3b82f6', '#8b5cf6', '#ec4899'][Math.round(Math.random() * 2)], ['#3b82f6', '#8b5cf6', '#ec4899'][Math.round(Math.random() * 2)]]
-                }));
+    worker.postMessage({ 
+        type: 'INIT', 
+        canvas: offscreenCanvas,
+        width: window.innerWidth,
+        height: window.innerHeight,
+        pixelRatio: Math.min(window.devicePixelRatio, 1.2)
+    }, [offscreenCanvas]); 
 
-                world.arcsData(arcsData)
-                    .arcColor('color')
-                    .arcDashLength(0.4)
-                    .arcDashGap(2)
-                    .arcDashInitialGap(1)
-                    .arcDashAnimateTime(1000);
-            }, 3500);
+    window.addEventListener('resize', () => {
+        worker.postMessage({
+            type: 'RESIZE',
+            width: window.innerWidth,
+            height: window.innerHeight
+        });
+    });
 
-            // Handle Resize
-            window.addEventListener('resize', () => {
-                world.width(globeContainer.offsetWidth || window.innerWidth);
-                world.height(globeContainer.offsetHeight || window.innerHeight);
-            });
-            
-        } catch (error) {
-            console.error('Error initializing globe:', error);
-        }
-    }, { timeout: 2000 });
-
-// ==========================================
-            // SMART RENDERING: INTERSECTION OBSERVER
-            // ==========================================
-            const observer = new IntersectionObserver((entries) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        // Globe screen par aa gaya -> Animation Resume
-                        if (world.resumeAnimation) world.resumeAnimation();
-                        console.log('Globe in view: Rendering Active');
-                    } else {
-                        // User ne scroll down kar liya -> Animation Pause (CPU Saved!)
-                        if (world.pauseAnimation) world.pauseAnimation();
-                        console.log('Globe out of view: Rendering Paused 💤');
-                    }
-                });
-            }, { threshold: 0.05 }); // Agar 5% bhi dikh raha hai toh chalne do
-
-            observer.observe(globeContainer);
+    console.log('Main thread is free! God-Tier Web Worker Active 🚀');
 }
 
 // ================================

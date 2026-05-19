@@ -114,8 +114,9 @@
 
     <!-- Hero Section -->
     <section class="relative min-h-screen flex flex-col justify-center pt-24 pb-12 overflow-hidden" style="background: black;">
-        <!-- Globe Container - Fixed size, no transforms -->
-        <div id="globeViz" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100%; z-index: 1; transform: none !important; opacity: 1 !important;"></div>
+        
+        <canvas id="globeViz" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none;"></canvas>
+        
         <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" style="z-index: 2;"></div>
 
         <div class="relative w-full max-w-7xl mx-auto px-6 text-center" style="z-index: 10;">
@@ -162,7 +163,7 @@
                 </a>
             </div>
         </div>
-    </section>
+    </>
 
     <!-- Features Grid -->
     <section class="py-32 relative z-10" id="features">
