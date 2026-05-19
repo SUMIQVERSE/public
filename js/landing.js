@@ -74,6 +74,25 @@ function initGlobe() {
             console.error('Error initializing globe:', error);
         }
     }, { timeout: 2000 });
+
+// ==========================================
+            // SMART RENDERING: INTERSECTION OBSERVER
+            // ==========================================
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        // Globe screen par aa gaya -> Animation Resume
+                        if (world.resumeAnimation) world.resumeAnimation();
+                        console.log('Globe in view: Rendering Active');
+                    } else {
+                        // User ne scroll down kar liya -> Animation Pause (CPU Saved!)
+                        if (world.pauseAnimation) world.pauseAnimation();
+                        console.log('Globe out of view: Rendering Paused 💤');
+                    }
+                });
+            }, { threshold: 0.05 }); // Agar 5% bhi dikh raha hai toh chalne do
+
+            observer.observe(globeContainer);
 }
 
 // ================================
