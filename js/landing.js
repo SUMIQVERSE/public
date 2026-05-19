@@ -12,49 +12,41 @@ document.addEventListener('DOMContentLoaded', () => {
 // ================================
 // 3D GLOBE VISUALIZATION
 // ================================
+// ================================
+// 3D GLOBE VISUALIZATION (INFINITE PREMIUM UX)
+// ================================
 function initGlobe() {
     console.log('Initializing globe...');
     const globeContainer = document.getElementById('globeViz');
     
     if (!globeContainer || typeof Globe === 'undefined') return;
 
+    // requestIdleCallback taaki HTML/CSS turant load ho jaye
     window.requestIdleCallback(() => {
         try {
-            // 1. INITIALIZE ONLY THE BARE GLOBE (Very lightweight, no rings)
+            // 1. GLOBE INITIALIZATION (Hamesha chalta rahega)
             const world = Globe()(globeContainer)
-                .globeImageUrl('//unpkg.com/three-globe/example/img/earth-dark.jpg')
+                .globeImageUrl('assets/images/earth-dark.jpg')
                 .atmosphereColor('#3b82f6')
                 .atmosphereAltitude(0.15)
                 .width(globeContainer.offsetWidth || window.innerWidth)
                 .height(globeContainer.offsetHeight || window.innerHeight);
 
-            // Hardware Optimization (Saves CPU/GPU)
+            // Hardware Optimization (Saves battery without stopping animation)
             world.renderer().setPixelRatio(Math.min(window.devicePixelRatio, 1.2));
             world.pointOfView({ altitude: 2.5 });
 
-            // Gradual Speed-up for the bare globe
+            // Globe hamesha 0.5 ki mast speed par ghumega
             world.controls().autoRotate = true;
-            world.controls().autoRotateSpeed = 0.05;
-
-            let currentSpeed = 0.05;
-            const targetSpeed = 0.5;
-
-            const speedUpInterval = setInterval(() => {
-                currentSpeed += 0.02;
-                if (currentSpeed >= targetSpeed) {
-                    currentSpeed = targetSpeed;
-                    clearInterval(speedUpInterval);
-                }
-                world.controls().autoRotateSpeed = currentSpeed;
-            }, 100);
+            world.controls().autoRotateSpeed = 0.5;
 
             // ==========================================
-            // TUMHARA IDEA: LAZY LOAD THE RINGS (ARCS)
+            // LAZY LOAD RINGS (For Initial Load Speed)
             // ==========================================
-            // Hum rings ko 3.5 seconds ke baad add karenge. 
-            // Tab tak Lighthouse apna test khatam kar chuka hoga!
+            // Globe aane ke 3.5 second baad rings smoothly appear hongi
+            // aur uske baad HAMESHA chalti rahengi.
             setTimeout(() => {
-                console.log('Adding rings to the globe...');
+                console.log('Adding glowing arcs...');
                 const N_ARCS = 20;
                 const arcsData = [...Array(N_ARCS).keys()].map(() => ({
                     startLat: (Math.random() - 0.5) * 180,
@@ -70,8 +62,7 @@ function initGlobe() {
                     .arcDashGap(2)
                     .arcDashInitialGap(1)
                     .arcDashAnimateTime(1000);
-            }, 3500); // 3.5s delay
-            // ==========================================
+            }, 3500);
 
             // Handle Resize
             window.addEventListener('resize', () => {
