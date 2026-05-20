@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function initWorkerGlobe() {
-    const canvas = document.getElementById('globeVis');
+    const canvas = document.getElementById('globeViz');
     if (!canvas) return;
 
     if (!('transferControlToOffscreen' in canvas)) {
