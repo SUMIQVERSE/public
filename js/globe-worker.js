@@ -190,7 +190,7 @@ function animate() {
     earthGroup.rotation.y += 0.001; 
   }
 
-  // === COMET ANIMATION (Bulletproof Method) ===
+  // === COMET ANIMATION ===
   const N_POINTS = 100;
   const TAIL_LENGTH = 20;
 

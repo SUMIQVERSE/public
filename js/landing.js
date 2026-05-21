@@ -9,6 +9,9 @@ document.addEventListener('DOMContentLoaded', () => {
     initScrollAnimations();
 });
 
+// ================================
+// 3D GLOBE VISUALIZATION
+// ================================
 function initWorkerGlobe() {
     const canvas = document.getElementById('globeViz');
     if (!canvas) return;
@@ -79,37 +82,10 @@ function initMobileMenu() {
 }
 
 // ================================
-// SCROLL ANIMATIONS (GSAP)
+// SCROLL ANIMATIONS (Native)
 // ================================
 function initScrollAnimations() {
-    // Check if GSAP is available
-    if (typeof gsap !== 'undefined' && typeof ScrollTrigger !== 'undefined') {
-        try {
-            gsap.registerPlugin(ScrollTrigger);
-
-            // Reveal elements on scroll, but exclude the navbar logo
-            gsap.utils.toArray('.group:not(.navbar-logo)').forEach(group => {
-                gsap.fromTo(group, 
-                    { y: 50, opacity: 0 },
-                    {
-                        y: 0,
-                        opacity: 1,
-                        duration: 0.8,
-                        stagger: 0.2,
-                        scrollTrigger: {
-                            trigger: group,
-                            start: "top 80%",
-                            toggleActions: "play none none reverse"
-                        }
-                    }
-                );
-            });
-        } catch (error) {
-            console.warn('GSAP animations not initialized:', error);
-        }
-    }
-
-    // Navbar Blur Effect (works without GSAP)
+    // Navbar Blur Effect
     const navbar = document.getElementById('navbar');
     if (navbar) {
         window.addEventListener('scroll', () => {
