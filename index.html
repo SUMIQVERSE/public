@@ -150,7 +150,7 @@
     </section>
 
     <!-- Features Grid -->
-    <section class="py-32 relative z-10" id="features">
+    <section class="py-24 relative z-20 bg-black" id="features">
         <div class="max-w-7xl mx-auto px-6">
             <div class="text-center mb-24" id="analytics">
                 <h2 class="text-3xl md:text-5xl font-bold mb-6">Everything you need to <br> manage your links.</h2>
@@ -161,6 +161,9 @@
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <!-- Large Card: Analytics -->
                 <div class="md:col-span-2 bg-white/5 border border-white/10 rounded-3xl p-8 hover:border-white/20 transition-all group overflow-hidden relative">
+                    <div class="absolute top-0 right-0 p-8 opacity-20 group-hover:opacity-40 transition-opacity">
+                        <i class="fas fa-chart-line text-9xl text-accent transform rotate-[-15deg] translate-x-8 translate-y-[-8]" aria-hidden="true"></i>
+                    </div>
                     <div class="relative z-10">
                         <div class="w-12 h-12 bg-accent/20 rounded-xl flex items-center justify-center mb-6">
                             <i class="fas fa-chart-bar text-accent text-xl" aria-hidden="true"></i>
@@ -178,7 +181,7 @@
                         </div>
                     </div>
                 </div>
-
+                
                 <!-- Card: QR Codes -->
                 <div class="bg-white/5 border border-white/10 rounded-3xl p-8 hover:border-white/20 transition-all group relative overflow-hidden">
                     <div class="absolute -bottom-10 -right-10 w-40 h-40 bg-pink-500/20 rounded-full blur-3xl group-hover:bg-pink-500/30 transition-colors"></div>
@@ -313,7 +316,7 @@
             <div class="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
                 <div class="col-span-1 md:col-span-2">
                     <a href="/" class="mb-4">
-                        <span class="font-bold text-lg">PIIK.ME</span>
+                        <span class="font-bold text-lg text-white">PIIK.ME</span>
                     </a>
                     <p class="text-gray-400 max-w-sm">The open-source intelligent link infrastructure for modern creators and businesses.</p>
                 </div>
