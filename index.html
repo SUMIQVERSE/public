@@ -369,8 +369,11 @@
     
     <!-- Vercel Analytics -->
     <script type="module">
-        import { inject } from 'https://cdn.jsdelivr.net/npm/@vercel/analytics@1.6.1/+esm';
-        inject();
+        window.addEventListener('load', () => {
+            import('https://cdn.jsdelivr.net/npm/@vercel/analytics@1.6.1/+esm')
+                .then(({ inject }) => inject())
+                .catch(err => console.warn('Analytics failed to load', err));
+        });
     </script>
 </body>
 </html>
