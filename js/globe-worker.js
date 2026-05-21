@@ -10,8 +10,9 @@ let introProgress = 0;
 
 // CONFIGURATION
 const GLOBE_RADIUS = 100;
-const N_ARCS = 25; 
-const COLORS = ["#3b82f6", "#8b5cf6", "#ec4899"];
+const N_ARCS = 30; // Thode arcs badha diye taaki video jaisa bhara hua lage
+// Exact video matching colors (Pink, Purple, Deep Blue)
+const COLORS = ["#ec4899", "#8b5cf6", "#d946ef", "#6366f1"];
 
 self.onmessage = function (e) {
   const data = e.data;
@@ -30,7 +31,9 @@ self.onmessage = function (e) {
     scene = new THREE.Scene();
     scene.fog = new THREE.FogExp2("#000b1a", 0.002);
 
-    camera = new THREE.PerspectiveCamera(45, data.width / data.height, 1, 1000);
+    const aspect = data.width / data.height;
+    const fov = aspect < 1 ? 55 : 45; // Mobile par thoda zoom out
+    camera = new THREE.PerspectiveCamera(fov, aspect, 1, 1000);
     camera.position.z = 400; 
 
     scene.add(earthGroup);
@@ -44,7 +47,9 @@ self.onmessage = function (e) {
     scene.add(frontLight);
 
     // 2. CREATE EARTH SKIN
-    const geometry = new THREE.SphereGeometry(GLOBE_RADIUS, 64, 64);
+    const isMobile = data.width < 768;
+    const globeSegments = isMobile ? 48 : 64;
+    const geometry = new THREE.SphereGeometry(GLOBE_RADIUS, globeSegments, globeSegments);
     const textureLoader = new THREE.ImageBitmapLoader();
     
     textureLoader.load(
@@ -74,7 +79,6 @@ self.onmessage = function (e) {
           fragmentShader: `
             varying vec3 vNormal;
             void main() {
-              // max() safely prevents the GPU from crashing
               float intensity = pow(max(0.65 - dot(vNormal, vec3(0, 0, 1.0)), 0.0), 2.0);
               vec3 glowColor = vec3(0.15, 0.35, 1.0);
               gl_FragColor = vec4(glowColor * intensity * 0.4, intensity);
@@ -89,7 +93,7 @@ self.onmessage = function (e) {
         const atmosMesh = new THREE.Mesh(atmosGeometry, atmosMaterial);
         earthGroup.add(atmosMesh);
 
-        // 4. GENERATE ARCS (Bulletproof LineBasicMaterial)
+        // 4. GENERATE ARCS (Custom Fading Comet Shader)
         createArcs();
 
         // GLOBE KO STARTING MEIN CHOTA KAR DO
@@ -130,37 +134,76 @@ function getCurveFromLatLng(lat1, lng1, lat2, lng2) {
     midPoint.normalize().multiplyScalar(maxAltitude);
 
     const curve = new THREE.QuadraticBezierCurve3(p1, midPoint, p2);
-    return curve.getPoints(100); 
+    return curve;
 }
 
-// --- GENERATE ARCS ---
+// --- GENERATE EXACT VIDEO ARCS (GPU SHADERS) ---
 
 function createArcs() {
+  const N_POINTS = 100; // Line resolution
+
   for (let i = 0; i < N_ARCS; i++) {
     const startLat = (Math.random() - 0.5) * 180;
     const startLng = (Math.random() - 0.5) * 360;
     const endLat = (Math.random() - 0.5) * 180;
     const endLng = (Math.random() - 0.5) * 360;
 
-    const curvePoints = getCurveFromLatLng(startLat, startLng, endLat, endLng);
+    const curve = getCurveFromLatLng(startLat, startLng, endLat, endLng);
+    const curvePoints = curve.getPoints(N_POINTS - 1); // Get 100 points
     const geometry = new THREE.BufferGeometry().setFromPoints(curvePoints);
+
+    // [NEW] Har point ko ek "progress" value di (0.0 se 1.0 tak) taaki tail fade ho sake
+    const progressArray = new Float32Array(N_POINTS);
+    for(let j = 0; j < N_POINTS; j++) {
+        progressArray[j] = j / (N_POINTS - 1);
+    }
+    geometry.setAttribute('aProgress', new THREE.BufferAttribute(progressArray, 1));
+
     const randomColor = COLORS[Math.floor(Math.random() * COLORS.length)];
 
-    // Using the stable LineBasicMaterial
-    const material = new THREE.LineBasicMaterial({
-        color: new THREE.Color(randomColor),
+    // [NEW] Custom Shader Material for Fading Comet Tail
+    const material = new THREE.ShaderMaterial({
+        uniforms: {
+            uColor: { value: new THREE.Color(randomColor) },
+            uTime: { value: Math.random() * 2.0 }, // Random start time
+            uTailLength: { value: 0.25 + Math.random() * 0.2 } // Random tail lengths (25% to 45% of arc)
+        },
+        vertexShader: `
+            attribute float aProgress;
+            varying float vProgress;
+            void main() {
+                vProgress = aProgress;
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+        `,
+        fragmentShader: `
+            uniform vec3 uColor;
+            uniform float uTime;
+            uniform float uTailLength;
+            varying float vProgress;
+            void main() {
+                float dist = uTime - vProgress;
+                float opacity = 0.0;
+                
+                // Agar point comet ki tail ke andar hai, toh fade effect lagao
+                if (dist >= 0.0 && dist <= uTailLength) {
+                    opacity = 1.0 - (dist / uTailLength);
+                    opacity = pow(opacity, 1.5); // Exponential fade (Premium look)
+                }
+                
+                gl_FragColor = vec4(uColor, opacity);
+            }
+        `,
         transparent: true,
-        opacity: 0.9,
-        blending: THREE.AdditiveBlending 
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
     });
 
     const arcLine = new THREE.Line(geometry, material);
-    arcLine.geometry.setDrawRange(0, 0); 
 
     arcs.push({
       mesh: arcLine,
-      progress: Math.random(), 
-      speed: 0.005 + Math.random() * 0.008 
+      speed: 0.003 + Math.random() * 0.004 // Smooth, variable speeds
     });
 
     earthGroup.add(arcLine);
@@ -174,38 +217,33 @@ function animate() {
 
   // === INTRO ANIMATION LOGIC ===
   if (isIntroAnimation) {
-    introProgress += 0.015; 
+    introProgress += 0.01; 
     
-    let scale = 1 - Math.pow(1 - introProgress, 3);
+    let t = Math.min(introProgress, 1);
+    let scale = 1 - Math.pow(1 - t, 3);
+    
     earthGroup.scale.set(scale, scale, scale);
-    
-    earthGroup.rotation.y -= 0.04 * (1 - introProgress);
+    earthGroup.rotation.y = (1 - t) * Math.PI * 0.5; 
     
     if (introProgress >= 1) {
         isIntroAnimation = false;
-        earthGroup.scale.set(1, 1, 1); 
+        earthGroup.scale.set(1, 1, 1);
+        earthGroup.rotation.y = 0; 
     }
   } else {
     // NORMAL BEHAVIOR
     earthGroup.rotation.y += 0.001; 
   }
 
-  // === COMET ANIMATION ===
-  const N_POINTS = 100;
-  const TAIL_LENGTH = 20;
-
+  // === COMET ANIMATION (GPU CONTROLLED) ===
   arcs.forEach((arc) => {
-    arc.progress += arc.speed;
+    let uniforms = arc.mesh.material.uniforms;
+    uniforms.uTime.value += arc.speed;
     
-    if (arc.progress > 1.2) {
-        arc.progress = -0.2; 
+    // Comet curve cross kar jaye toh usko wapas shuru se bhejo
+    if (uniforms.uTime.value > 1.0 + uniforms.uTailLength.value) {
+        uniforms.uTime.value = -uniforms.uTailLength.value;
     }
-
-    const currentPoint = Math.floor(arc.progress * N_POINTS);
-    const startPoint = Math.max(0, currentPoint - TAIL_LENGTH);
-    const pointsToDraw = Math.min(currentPoint, N_POINTS) - startPoint;
-
-    arc.mesh.geometry.setDrawRange(startPoint, Math.max(0, pointsToDraw));
   });
 
   renderer.render(scene, camera);
